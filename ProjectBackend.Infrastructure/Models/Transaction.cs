@@ -21,7 +21,6 @@ namespace ProjectBackend.Infrastructure.Models
         public string Description { get; set; } = string.Empty;
         public TransactionType Type { get; set; }
 
-        // Nullable sender/receiver
         public Guid? FromAccountId { get; set; }
         public BankAccount? FromAccount { get; set; }
 

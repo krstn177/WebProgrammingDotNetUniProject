@@ -17,7 +17,7 @@ namespace ProjectBackend.Infrastructure.Models
     public class DebitCard : BaseEntity
     {
         [Required]
-        [StringLength(6)]
+        [StringLength(16)]
         public string CardNumber { get; set; }
         [Required]
         public string HolderName { get; set; }

@@ -11,6 +11,19 @@ namespace ProjectBackend.Infrastructure.DataSeeders
 {
     public static class DataSeeder
     {
+        public static async Task SeedRolesAsync(IServiceProvider serviceProvider)
+        {
+            using var scope = serviceProvider.CreateScope();
+            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+            var roles = new[] { "Bank", "Customer" };
+            foreach (var role in roles)
+            {
+                if (!await roleManager.RoleExistsAsync(role))
+                {
+                    await roleManager.CreateAsync(new IdentityRole<Guid>(role));
+                }
+            }
+        }
         public static async Task SeedAdminBankAsync(IServiceProvider serviceProvider)
         {
             using var scope = serviceProvider.CreateScope();
@@ -18,19 +31,29 @@ namespace ProjectBackend.Infrastructure.DataSeeders
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
             const string bankEmail = "bank@mybank.com";
-            const string bankPassword = "Bank@1234";
+            const string bankPassword = "Banker@1234";
 
             var bankUser = await userManager.FindByEmailAsync(bankEmail);
             if (bankUser == null)
             {
                 bankUser = new BankUser
                 {
+                    Id = Guid.NewGuid(),
                     UserName = "MainBank",
+                    FirstName = "Main",
+                    LastName = "Bank",
+                    PersonalIdentificationNumber = "9005151234",
                     Email = bankEmail,
-                    EmailConfirmed = true
+                    EmailConfirmed = true,
+                    SecurityStamp = Guid.NewGuid().ToString()
                 };
 
-                await userManager.CreateAsync(bankUser, bankPassword);
+                var createResult = await userManager.CreateAsync(bankUser, bankPassword);
+                if (!createResult.Succeeded)
+                {
+                    throw new InvalidOperationException($"Failed to create seed user: {string.Join("; ", createResult.Errors.Select(e => e.Description))}");
+                }
+
                 await userManager.AddToRoleAsync(bankUser, "Bank");
             }
 

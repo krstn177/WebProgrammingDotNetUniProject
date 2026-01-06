@@ -12,7 +12,7 @@ using ProjectBackend.Infrastructure;
 namespace ProjectBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251110114234_Initial Migration")]
+    [Migration("20251215111448_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -427,7 +427,7 @@ namespace ProjectBackend.Migrations
                     b.HasOne("ProjectBackend.Infrastructure.Models.BankUser", "BankUser")
                         .WithMany("BankAccounts")
                         .HasForeignKey("BankUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("BankUser");
@@ -438,13 +438,13 @@ namespace ProjectBackend.Migrations
                     b.HasOne("ProjectBackend.Infrastructure.Models.BankAccount", "BankAccount")
                         .WithMany("DebitCards")
                         .HasForeignKey("BankAccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("ProjectBackend.Infrastructure.Models.BankUser", "Owner")
                         .WithMany("DebitCards")
                         .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("BankAccount");
@@ -457,12 +457,12 @@ namespace ProjectBackend.Migrations
                     b.HasOne("ProjectBackend.Infrastructure.Models.BankAccount", "FromAccount")
                         .WithMany("SentTransactions")
                         .HasForeignKey("FromAccountId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("ProjectBackend.Infrastructure.Models.BankAccount", "ToAccount")
                         .WithMany("ReceivedTransactions")
                         .HasForeignKey("ToAccountId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("FromAccount");
 

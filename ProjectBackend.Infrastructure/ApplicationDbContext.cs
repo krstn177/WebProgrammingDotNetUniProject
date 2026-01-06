@@ -23,31 +23,31 @@ namespace ProjectBackend.Infrastructure
                 .HasOne(t => t.FromAccount)
                 .WithMany(a => a.SentTransactions)
                 .HasForeignKey(t => t.FromAccountId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Transaction>()
                 .HasOne(t => t.ToAccount)
                 .WithMany(a => a.ReceivedTransactions)
                 .HasForeignKey(t => t.ToAccountId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<DebitCard>()
                 .HasOne(dc => dc.BankAccount)
                 .WithMany(ba => ba.DebitCards)
                 .HasForeignKey(dc => dc.BankAccountId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
             
             modelBuilder.Entity<DebitCard>()
                 .HasOne(ow => ow.Owner)
                 .WithMany(u => u.DebitCards)
                 .HasForeignKey(ow => ow.OwnerId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<BankAccount>()
                 .HasOne(ba => ba.BankUser)
                 .WithMany(u => u.BankAccounts)
                 .HasForeignKey(ba => ba.BankUserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
         }
     }
 }
