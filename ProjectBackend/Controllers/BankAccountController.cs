@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -82,7 +84,7 @@ namespace ProjectBackend.Controllers
         [Authorize(Roles = "Bank")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBankAccountDto dto, CancellationToken cancellationToken)
         {
-            if (dto == null || id != dto.Id) return BadRequest();
+            if (dto == null ) return BadRequest();
 
             var existing = await _accountRepo.GetByIdAsync(id, cancellationToken);
             if (existing == null) return NotFound();
@@ -90,7 +92,6 @@ namespace ProjectBackend.Controllers
             existing.IBAN = dto.IBAN ?? existing.IBAN;
             existing.AccountNumber = dto.AccountNumber ?? existing.AccountNumber;
             existing.Balance = dto.Balance ?? existing.Balance;
-            existing.BankUserId = dto.BankUserId ?? existing.BankUserId;
 
             _accountRepo.Update(existing);
             var saved = await _accountRepo.SaveChangesAsync(cancellationToken);
@@ -110,6 +111,15 @@ namespace ProjectBackend.Controllers
             _accountRepo.Remove(existing);
             await _accountRepo.SaveChangesAsync(cancellationToken);
             return NoContent();
+        }
+
+        // GET: api/BankAccount/user/{userId}
+        [HttpGet("user/{userId:guid}")]
+        [Authorize(Roles = "Bank")]
+        public async Task<ActionResult<IEnumerable<BankAccountDto>>> GetByUserId(Guid userId, CancellationToken cancellationToken)
+        {
+            var accounts = await _accountRepo.GetByUserIdAsync(userId, cancellationToken);
+            return Ok(accounts.Select(Map));
         }
 
         // ---------------- User endpoints (authenticated) ----------------
@@ -144,17 +154,16 @@ namespace ProjectBackend.Controllers
         // POST: api/BankAccount/me
         [HttpPost("me")]
         [Authorize]
-        public async Task<ActionResult<BankAccountDto>> CreateForMe([FromBody] CreateBankAccountDto dto, CancellationToken cancellationToken)
+        public async Task<ActionResult<BankAccountDto>> CreateForMe(CancellationToken cancellationToken)
         {
             var userId = GetCurrentUserId();
             if (userId == null) return BadRequest("User id claim missing.");
-            if (dto == null) return BadRequest();
 
             var entity = new BankAccount
             {
-                IBAN = dto.IBAN ?? string.Empty,
-                AccountNumber = dto.AccountNumber ?? string.Empty,
-                Balance = dto.Balance,
+                IBAN = GenerateIBAN(),
+                AccountNumber = GenerateAccountNumber(),
+                Balance = 0m,
                 BankUserId = userId.Value
             };
 
@@ -203,6 +212,33 @@ namespace ProjectBackend.Controllers
             var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrWhiteSpace(idClaim)) return null;
             return Guid.TryParse(idClaim, out var g) ? g : (Guid?)null;
+        }
+
+        private static string GenerateIBAN()
+        {
+            var sb = new StringBuilder(22);
+            sb.Append("BG");
+
+            sb.Append(RandomNumberGenerator.GetInt32(10, 100).ToString("D2"));
+            
+            sb.Append("BANK");
+            
+            for (int i = 0; i < 14; i++)
+            {
+                sb.Append(RandomNumberGenerator.GetInt32(0, 10));
+            }
+            
+            return sb.ToString();
+        }
+
+        private static string GenerateAccountNumber()
+        {
+            var sb = new StringBuilder(10);
+            for (int i = 0; i < 10; i++)
+            {
+                sb.Append(RandomNumberGenerator.GetInt32(0, 10));
+            }
+            return sb.ToString();
         }
 
         private static BankAccountDto Map(BankAccount a)

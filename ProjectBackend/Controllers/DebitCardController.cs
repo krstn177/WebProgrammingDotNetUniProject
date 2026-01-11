@@ -55,7 +55,6 @@ namespace ProjectBackend.Controllers
         }
 
         // POST: api/DebitCard
-        // Admin may create a card for any account
         [HttpPost]
         [Authorize(Roles = "Bank")]
         public async Task<ActionResult<DebitCardDto>> Create([FromBody] CreateDebitCardDto dto, CancellationToken cancellationToken)
@@ -70,6 +69,7 @@ namespace ProjectBackend.Controllers
                 HolderName = dto.HolderName ?? string.Empty,
                 ExpirationDate = dto.ExpirationDate,
                 Type = dto.Type,
+                CVV = dto.CVV ?? GenerateCVV(),
                 BankAccountId = dto.BankAccountId,
                 OwnerId = dto.OwnerId
             };
@@ -85,8 +85,31 @@ namespace ProjectBackend.Controllers
             return CreatedAtAction(nameof(GetById), new { id = entity.Id }, Map(entity));
         }
 
+        // PUT: api/DebitCard/{id}
+        [HttpPut("{id:guid}")]
+        [Authorize(Roles = "Bank")]
+        public async Task<IActionResult> UpdateAsAdmin(Guid id, [FromBody] UpdateDebitCardDto dto, CancellationToken cancellationToken)
+        {
+            if (dto == null || id != dto.Id) return BadRequest();
+
+            var existing = await _cardRepo.GetByIdAsync(id, cancellationToken);
+            if (existing == null) return NotFound();
+
+            existing.HolderName = dto.HolderName ?? existing.HolderName;
+            existing.ExpirationDate = dto.ExpirationDate ?? existing.ExpirationDate;
+            existing.Type = dto.Type ?? existing.Type;
+
+            if (!string.IsNullOrEmpty(dto.NewPIN))
+                existing.PINHash = HashPin(dto.NewPIN);
+
+            _cardRepo.Update(existing);
+            var saved = await _cardRepo.SaveChangesAsync(cancellationToken);
+            if (!saved) return StatusCode(500, "Unable to save changes.");
+
+            return NoContent();
+        }
+
         // DELETE: api/DebitCard/{id}
-        // Admin may delete any card
         [HttpDelete("{id:guid}")]
         [Authorize(Roles = "Bank")]
         public async Task<IActionResult> DeleteAsAdmin(Guid id, CancellationToken cancellationToken)
@@ -129,7 +152,6 @@ namespace ProjectBackend.Controllers
         }
 
         // POST: api/DebitCard/me
-        // Create a card for a bank account the user owns
         [HttpPost("me")]
         [Authorize]
         public async Task<ActionResult<DebitCardDto>> CreateForMe([FromBody] CreateDebitCardForMeDto dto, CancellationToken cancellationToken)
@@ -150,6 +172,7 @@ namespace ProjectBackend.Controllers
                 HolderName = user.FirstName + " " + user.LastName,
                 ExpirationDate = GenerateExpirationDate(),
                 Type = dto.Type,
+                CVV = GenerateCVV(),
                 BankAccountId = dto.BankAccountId,
                 OwnerId = userId.Value,
                 PINHash = string.IsNullOrEmpty(dto.PIN) ? string.Empty : HashPin(dto.PIN)
@@ -162,7 +185,6 @@ namespace ProjectBackend.Controllers
         }
 
         // DELETE: api/DebitCard/me/{id}
-        // Owner may delete their own card (good for demo / account management)
         [HttpDelete("me/{id:guid}")]
         [Authorize]
         public async Task<IActionResult> DeleteMyCard(Guid id, CancellationToken cancellationToken)
@@ -179,13 +201,13 @@ namespace ProjectBackend.Controllers
             return NoContent();
         }
 
-        // PUT: api/DebitCard/me/{id}
-        // Owner can update holder name and expiration date
-        [HttpPut("me/{id:guid}")]
+        // PUT: api/DebitCard/me/{id}/pin
+        [HttpPut("me/{id:guid}/pin")]
         [Authorize]
-        public async Task<IActionResult> UpdateMyCard(Guid id, [FromBody] UpdateDebitCardDto dto, CancellationToken cancellationToken)
+        public async Task<IActionResult> UpdateMyCardPin(Guid id, [FromBody] UpdateCardPinDto dto, CancellationToken cancellationToken)
         {
-            if (dto == null || id != dto.Id) return BadRequest();
+            if (dto == null) return BadRequest();
+            if (string.IsNullOrEmpty(dto.NewPIN)) return BadRequest("New PIN is required.");
 
             var userId = GetCurrentUserId();
             if (userId == null) return BadRequest("User id claim missing.");
@@ -194,11 +216,7 @@ namespace ProjectBackend.Controllers
             if (existing == null) return NotFound();
             if (existing.OwnerId != userId.Value) return Forbid();
 
-            existing.HolderName = dto.HolderName ?? existing.HolderName;
-            existing.ExpirationDate = dto.ExpirationDate ?? existing.ExpirationDate;
-
-            if (!string.IsNullOrEmpty(dto.NewPIN))
-                existing.PINHash = HashPin(dto.NewPIN);
+            existing.PINHash = HashPin(dto.NewPIN);
 
             _cardRepo.Update(existing);
             var saved = await _cardRepo.SaveChangesAsync(cancellationToken);
@@ -207,10 +225,35 @@ namespace ProjectBackend.Controllers
             return NoContent();
         }
 
+        // GET: api/DebitCard/owner/{ownerId}
+        [HttpGet("user/{ownerId:guid}")]
+        [Authorize(Roles = "Bank")]
+        public async Task<ActionResult<IEnumerable<DebitCardDto>>> GetByOwnerId(Guid ownerId, CancellationToken cancellationToken)
+        {
+            var cards = await _cardRepo.GetByOwnerIdAsync(ownerId, cancellationToken);
+            return Ok(cards.Select(Map));
+        }
+
+        // GET: api/DebitCard/me/account/{bankAccountId}
+        [HttpGet("me/account/{bankAccountId:guid}")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<DebitCardDto>>> GetMyCardsByAccount(Guid bankAccountId, CancellationToken cancellationToken)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return BadRequest("User id claim missing.");
+
+            var account = await _accountRepo.GetByIdAsync(bankAccountId, cancellationToken);
+            if (account == null) return NotFound("Bank account not found.");
+            if (account.BankUserId != userId.Value) return Forbid();
+
+            var cards = await _cardRepo.GetByBankAccountIdAsync(bankAccountId, cancellationToken);
+            return Ok(cards.Select(Map));
+        }
+
         // ---------- Helpers & mapping ----------
         private static string GenerateCardNumber()
         {
-            var sb = new StringBuilder(19); // 16 digits + 3 spaces
+            var sb = new StringBuilder(19);
             for (int i = 0; i < 16; i++)
             {
                 int digit = RandomNumberGenerator.GetInt32(0, 10);
@@ -220,8 +263,12 @@ namespace ProjectBackend.Controllers
             return sb.ToString();
         }
 
-        // Sets expiration date to a sensible default (4 years from now),
-        // returning the last moment of the expiration month in UTC.
+        private static string GenerateCVV()
+        {
+            var cvv = RandomNumberGenerator.GetInt32(100, 1000);
+            return cvv.ToString("D3");
+        }
+
         private static DateTime GenerateExpirationDate()
         {
             var target = DateTime.UtcNow.AddYears(4);
@@ -245,6 +292,7 @@ namespace ProjectBackend.Controllers
                 HolderName = c.HolderName,
                 ExpirationDate = c.ExpirationDate,
                 Type = c.Type,
+                CVV = c.CVV,
                 BankAccountId = c.BankAccountId,
                 OwnerId = c.OwnerId
             };

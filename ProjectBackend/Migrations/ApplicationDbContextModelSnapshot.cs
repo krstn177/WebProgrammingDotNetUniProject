@@ -282,10 +282,15 @@ namespace ProjectBackend.Migrations
                     b.Property<Guid>("BankAccountId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("CVV")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
                     b.Property<string>("CardNumber")
                         .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)");
+                        .HasMaxLength(19)
+                        .HasColumnType("nvarchar(19)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -323,6 +328,65 @@ namespace ProjectBackend.Migrations
                     b.HasIndex("OwnerId");
 
                     b.ToTable("DebitCards");
+                });
+
+            modelBuilder.Entity("ProjectBackend.Infrastructure.Models.Loan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BankLenderAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BorrowerAccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("InitialTransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("InterestRate")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("NextInterestUpdate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Principal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("RemainingAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TermInMonths")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("isDeleted")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankLenderAccountId");
+
+                    b.HasIndex("BorrowerAccountId");
+
+                    b.HasIndex("InitialTransactionId");
+
+                    b.ToTable("Loans");
                 });
 
             modelBuilder.Entity("ProjectBackend.Infrastructure.Models.Transaction", b =>
@@ -447,6 +511,32 @@ namespace ProjectBackend.Migrations
                     b.Navigation("BankAccount");
 
                     b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("ProjectBackend.Infrastructure.Models.Loan", b =>
+                {
+                    b.HasOne("ProjectBackend.Infrastructure.Models.BankAccount", "BankLenderAccount")
+                        .WithMany()
+                        .HasForeignKey("BankLenderAccountId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("ProjectBackend.Infrastructure.Models.BankAccount", "BankAccount")
+                        .WithMany()
+                        .HasForeignKey("BorrowerAccountId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("ProjectBackend.Infrastructure.Models.Transaction", "InitialTransaction")
+                        .WithMany()
+                        .HasForeignKey("InitialTransactionId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("BankAccount");
+
+                    b.Navigation("BankLenderAccount");
+
+                    b.Navigation("InitialTransaction");
                 });
 
             modelBuilder.Entity("ProjectBackend.Infrastructure.Models.Transaction", b =>

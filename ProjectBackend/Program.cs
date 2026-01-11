@@ -108,7 +108,20 @@ namespace ProjectBackend
             builder.Services.AddScoped<IDebitCardRepository, DebitCardRepository>();
             builder.Services.AddScoped<ILoanRepository, LoanRepository>();
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowLocalhost", policy =>
+                {
+                    policy
+                        .WithOrigins("https://localhost:5173", "http://localhost:5173")
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .AllowCredentials();
+                });
+            });
+
             var app = builder.Build();
+            app.UseCors("AllowLocalhost");
 
             using (var scope = app.Services.CreateScope())
             {
@@ -132,6 +145,7 @@ namespace ProjectBackend
             }
 
             app.UseHttpsRedirection();
+            
 
             app.UseAuthentication();
             app.UseAuthorization();

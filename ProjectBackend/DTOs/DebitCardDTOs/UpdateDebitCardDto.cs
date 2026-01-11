@@ -1,4 +1,5 @@
-﻿
+﻿using ProjectBackend.Infrastructure.Models;
+
 namespace ProjectBackend.DTOs.DebitCardDTOs
 {
     public record UpdateDebitCardDto
@@ -6,6 +7,7 @@ namespace ProjectBackend.DTOs.DebitCardDTOs
         public Guid Id { get; init; }
         public string? HolderName { get; init; }
         public DateTime? ExpirationDate { get; init; }
-        public string? NewPIN { get; init; } // optional PIN change (demo)
+        public CardType? Type { get; init; }
+        public string? NewPIN { get; init; } // optional PIN change
     }
 }

@@ -17,7 +17,7 @@ namespace ProjectBackend.Infrastructure.Models
     public class DebitCard : BaseEntity
     {
         [Required]
-        [StringLength(16)]
+        [StringLength(19)] // Changed from 16 to 19 to accommodate spaces
         public string CardNumber { get; set; }
         [Required]
         public string HolderName { get; set; }
@@ -32,6 +32,10 @@ namespace ProjectBackend.Infrastructure.Models
 
         [Required]
         public string PINHash { get; set; }
+
+        [Required]
+        [StringLength(3, MinimumLength = 3)]
+        public string CVV { get; set; }
 
         [Required]
         public Guid OwnerId { get; set; }

@@ -1,0 +1,210 @@
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  padding: 24px;
+  transition: all 0.3s ease;
+  border: 1px solid #e5e7eb;
+}
+
+.card:hover {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.accountInfo {
+  flex: 1;
+}
+
+.accountNumber {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.5px;
+}
+
+.iban {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.3px;
+}
+
+.balanceContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+}
+
+.balanceLabel {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.balance {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.5px;
+}
+
+.cardFooter {
+  display: flex;
+  flex-direction: column;
+  align-items: baseline;
+  gap: 20px;
+}
+
+.userId {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.userLabel {
+  font-size: 11px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.userValue {
+  font-size: 13px;
+  color: #4b5563;
+  font-family: 'Courier New', monospace;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+}
+
+.editButton {
+  background: #f3f4f6;
+  color: #667eea;
+}
+
+.editButton:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.deleteButton {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.deleteButton:hover {
+  background: #dc2626;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.button:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 20px;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .balanceContainer {
+    width: 100%;
+    align-items: center;
+  }
+
+  .accountNumber {
+    font-size: 18px;
+  }
+
+  .balance {
+    font-size: 22px;
+  }
+
+  .cardFooter {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .button {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 16px;
+  }
+
+  .accountNumber {
+    font-size: 16px;
+  }
+
+  .iban {
+    font-size: 12px;
+  }
+
+  .balance {
+    font-size: 20px;
+  }
+
+  .button {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .icon {
+    width: 14px;
+    height: 14px;
+  }
+}

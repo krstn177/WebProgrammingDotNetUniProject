@@ -10,6 +10,7 @@ namespace ProjectBackend.Infrastructure
         public DbSet<BankAccount> BankAccounts { get; set; }
         public DbSet<DebitCard> DebitCards { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<Loan> Loans { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
@@ -47,6 +48,24 @@ namespace ProjectBackend.Infrastructure
                 .HasOne(ba => ba.BankUser)
                 .WithMany(u => u.BankAccounts)
                 .HasForeignKey(ba => ba.BankUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Loan>()
+                .HasOne(l => l.BankAccount)
+                .WithMany()
+                .HasForeignKey(l => l.BorrowerAccountId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Loan>()
+                .HasOne(l => l.BankLenderAccount)
+                .WithMany()
+                .HasForeignKey(l => l.BankLenderAccountId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Loan>()
+                .HasOne(l => l.InitialTransaction)
+                .WithMany()
+                .HasForeignKey(l => l.InitialTransactionId)
                 .OnDelete(DeleteBehavior.NoAction);
         }
     }

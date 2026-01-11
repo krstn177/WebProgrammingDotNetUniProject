@@ -55,11 +55,9 @@ namespace ProjectBackend.Controllers
             var loan = await _loanRepo.GetByIdAsync(id, cancellationToken);
             if (loan == null) return NotFound();
 
-            // allow bank role to view any loan
             if (User.IsInRole("Bank"))
                 return Ok(MapLoan(loan));
 
-            // otherwise ensure current user is borrower or lender
             var userId = GetCurrentUserId();
             if (userId == null) return BadRequest("User id claim missing.");
 
@@ -73,8 +71,6 @@ namespace ProjectBackend.Controllers
         }
 
         // POST: api/Loan/me
-        // User requests a new loan. Server sets the lender to the single user in role "Bank".
-        // Interest rate and term are determined by the controller (not provided by the client).
         [HttpPost("me")]
         [Authorize]
         public async Task<ActionResult<LoanDto>> CreateForMe([FromBody] CreateLoanForMeDto dto, CancellationToken cancellationToken)
@@ -85,21 +81,18 @@ namespace ProjectBackend.Controllers
             var userId = GetCurrentUserId();
             if (userId == null) return BadRequest("User id claim missing.");
 
-            // verify borrower account exists and belongs to current user
             var borrowerAccount = await _accountRepo.GetByIdAsync(dto.BorrowerAccountId, cancellationToken);
             if (borrowerAccount == null) return BadRequest("Borrower account not found.");
             if (borrowerAccount.BankUserId != userId.Value) return Forbid();
 
-            // find the single bank user (role "Bank")
             var bankUsers = await _userManager.GetUsersInRoleAsync("Bank");
             var bankUser = bankUsers.SingleOrDefault();
             if (bankUser == null) return StatusCode(500, "No bank user configured.");
-            // find a bank account for the lender
+
             var bankAccounts = await _accountRepo.GetByUserIdAsync(bankUser.Id, cancellationToken);
             var lenderAccount = bankAccounts.FirstOrDefault();
             if (lenderAccount == null) return StatusCode(500, "Bank lender account not configured.");
 
-            // create initial transaction (lender -> borrower)
             var initialTx = new Transaction
             {
                 Amount = dto.Principal,
@@ -109,15 +102,12 @@ namespace ProjectBackend.Controllers
                 ToAccountId = borrowerAccount.Id
             };
 
-            // update balances
             lenderAccount.Balance -= dto.Principal;
             borrowerAccount.Balance += dto.Principal;
 
-            // controller decides interest rate and term
             var interestRate = DetermineInterestRate(dto.Principal);
             var termMonths = DetermineTermMonths(dto.Principal);
 
-            // create loan entity
             var loan = new Loan
             {
                 Principal = dto.Principal,
@@ -131,17 +121,14 @@ namespace ProjectBackend.Controllers
                 Status = LoanStatus.Active
             };
 
-            // attach changes to context via repositories
             _accountRepo.Update(lenderAccount);
             _accountRepo.Update(borrowerAccount);
             await _transactionRepo.AddAsync(initialTx, cancellationToken);
             await _loanRepo.AddAsync(loan, cancellationToken);
 
-            // save all (repositories share same DbContext)
             var saved = await _loanRepo.SaveChangesAsync(cancellationToken);
             if (!saved) return StatusCode(500, "Unable to persist loan.");
 
-            // link initial transaction to loan (tx.Id will be populated after save)
             loan.InitialTransactionId = initialTx.Id;
             _loanRepo.Update(loan);
             var savedAgain = await _loanRepo.SaveChangesAsync(cancellationToken);
@@ -151,7 +138,6 @@ namespace ProjectBackend.Controllers
         }
 
         // POST: api/Loan/{id}/payments
-        // Make a payment towards a loan. User provides sender bank account id and amount.
         [HttpPost("{id:guid}/payments")]
         [Authorize]
         public async Task<ActionResult> PayLoan(Guid id, [FromBody] PayLoanDto dto, CancellationToken cancellationToken)
@@ -166,32 +152,27 @@ namespace ProjectBackend.Controllers
             if (loan == null) return NotFound();
             if (loan.Status != LoanStatus.Active) return BadRequest("Loan is not active.");
 
-            // verify sender account exists and belongs to user
             var sender = await _accountRepo.GetByIdAsync(dto.SenderBankAccountId, cancellationToken);
             if (sender == null) return BadRequest("Sender account not found.");
             if (sender.BankUserId != userId.Value) return Forbid();
 
             if (sender.Balance < dto.Amount) return BadRequest("Insufficient funds.");
 
-            // load lender account
             var lender = await _accountRepo.GetByIdAsync(loan.BankLenderAccountId, cancellationToken);
             if (lender == null) return StatusCode(500, "Lender account not found.");
 
-            // perform transfer: sender -> lender
             sender.Balance -= dto.Amount;
             lender.Balance += dto.Amount;
 
-            // record transaction
             var tx = new Transaction
             {
                 Amount = dto.Amount,
                 Description = dto.Description ?? "Loan payment",
-                Type = TransactionType.Transfer,
+                Type = TransactionType.Payment, 
                 FromAccountId = sender.Id,
                 ToAccountId = lender.Id
             };
 
-            // update loan remaining amount and status
             loan.RemainingAmount -= dto.Amount;
             if (loan.RemainingAmount <= 0)
             {
@@ -208,6 +189,31 @@ namespace ProjectBackend.Controllers
             if (!saved) return StatusCode(500, "Unable to save payment.");
 
             return NoContent();
+        }
+
+        // GET: api/Loan/user/{userId}
+        [HttpGet("user/{userId:guid}")]
+        [Authorize(Roles = "Bank")]
+        public async Task<ActionResult<IEnumerable<LoanDto>>> GetByUserId(Guid userId, CancellationToken cancellationToken)
+        {
+            var loans = await _loanRepo.GetByUserIdAsync(userId, cancellationToken);
+            return Ok(loans.Select(MapLoan));
+        }
+
+        // GET: api/Loan/me/account/{bankAccountId}
+        [HttpGet("me/account/{bankAccountId:guid}")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<LoanDto>>> GetMyLoansByAccount(Guid bankAccountId, CancellationToken cancellationToken)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return BadRequest("User id claim missing.");
+
+            var account = await _accountRepo.GetByIdAsync(bankAccountId, cancellationToken);
+            if (account == null) return NotFound("Bank account not found.");
+            if (account.BankUserId != userId.Value) return Forbid();
+
+            var loans = await _loanRepo.GetByBorrowerAccountIdAsync(bankAccountId, cancellationToken);
+            return Ok(loans.Select(MapLoan));
         }
 
         // ---------- Helpers & mapping ----------
@@ -237,7 +243,6 @@ namespace ProjectBackend.Controllers
 
         private static decimal DetermineInterestRate(decimal principal)
         {
-            // simple tiered rates for demo purposes
             if (principal <= 1_000m) return 3.5m;
             if (principal <= 10_000m) return 5.0m;
             return 7.5m;
@@ -245,7 +250,6 @@ namespace ProjectBackend.Controllers
 
         private static int DetermineTermMonths(decimal principal)
         {
-            // simple tiered terms for demo purposes
             if (principal <= 1_000m) return 12;
             if (principal <= 10_000m) return 36;
             return 60;

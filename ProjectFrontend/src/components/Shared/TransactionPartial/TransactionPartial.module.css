@@ -1,0 +1,219 @@
+.transaction {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 10px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+  
+.transaction:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateX(2px);
+}
+
+.iconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.icon {
+  font-size: 20px;
+}
+
+.deposit .iconContainer {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.deposit .icon {
+  color: #10b981;
+}
+
+.withdrawal .iconContainer {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.withdrawal .icon {
+  color: #ef4444;
+}
+
+.transfer .iconContainer {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.transfer .icon {
+  color: #3b82f6;
+}
+
+.payment .iconContainer {
+  background: rgba(168, 85, 247, 0.1);
+}
+
+.payment .icon {
+  color: #a855f7;
+}
+
+.generic .iconContainer {
+  background: rgba(107, 114, 128, 0.1);
+}
+
+.generic .icon {
+  color: #6b7280;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.type {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.amount {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.deposit .amount {
+  color: #10b981;
+}
+
+.withdrawal .amount {
+  color: #ef4444;
+}
+
+.transfer .amount {
+  color: #3b82f6;
+}
+
+.payment .amount {
+  color: #a855f7;
+}
+
+.description {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accounts {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.accountInfo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.label {
+  font-size: 11px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.accountId {
+  font-size: 12px;
+  color: #4b5563;
+  font-family: 'Courier New', monospace;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.id {
+  font-size: 11px;
+  color: #6b7280;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+}
+
+.metadata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+.date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #6b7280;
+}
+
+.date i {
+  font-size: 11px;
+}
+
+@media (max-width: 768px) {
+  .transaction {
+    flex-wrap: wrap;
+  }
+
+  .content {
+    min-width: 100%;
+    order: 2;
+  }
+
+  .iconContainer {
+    order: 1;
+  }
+
+  .badge {
+    order: 3;
+    width: 100%;
+  }
+
+  .accountId {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .transaction {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .badge {
+    width: 100%;
+  }
+}
